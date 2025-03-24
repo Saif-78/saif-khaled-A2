@@ -1,0 +1,190 @@
+from datetime import datetime 
+
+# Class: Room
+class Room:
+    def __init__(self, room_number, room_type, amenities, price_per_night):
+        # Initialize room details
+        self.__room_number = room_number
+        self.__room_type = room_type
+        self.__amenities = amenities
+        self.__price_per_night = price_per_night
+        self.__is_available = True  # By default, room is available
+
+    def is_available(self):
+        # Return room availability
+        return self.__is_available
+
+    def book_room(self):
+        # Mark room as booked
+        self.__is_available = False
+
+    def release_room(self):
+        # Mark room as available again
+        self.__is_available = True
+
+    def get_price(self):
+        # Return room price per night
+        return self.__price_per_night
+
+    def __str__(self):
+        # Return string representation of the room
+        return f"Room {self.__room_number} - {self.__room_type}, ${self.__price_per_night}/night"
+
+
+# Class: Guest
+class Guest:
+    def __init__(self, name, email, contact, loyalty_status=False):
+        # Validate required fields
+        if not name or not email or not contact:
+            raise ValueError("Guest name, email, and contact are required.")
+        # Initialize guest details
+        self.__name = name
+        self.__email = email
+        self.__contact = contact
+        self.__loyalty_status = loyalty_status
+        self.__loyalty_points = 0  # Initial points
+        self.__reservations = []  # Empty reservation list
+
+    def add_reservation(self, reservation):
+        # Add reservation to guest's history
+        self.__reservations.append(reservation)
+
+    def add_loyalty_points(self, points):
+        # Add loyalty points
+        self.__loyalty_points += points
+
+    def view_reservations(self):
+        # Return all reservations of guest
+        return self.__reservations
+
+    def __str__(self):
+        # Return string summary of guest
+        return f"Guest: {self.__name}, Loyalty Points: {self.__loyalty_points}"
+
+
+# Class: Invoice
+class Invoice:
+    def __init__(self, reservation, total_amount):
+        # Initialize invoice with reservation and amount
+        self.__reservation = reservation
+        self.__total_amount = total_amount
+
+    def __str__(self):
+        # Return string summary of invoice
+        return f"Invoice Total: ${self.__total_amount}"
+
+
+# Class: Reservation
+class Reservation:
+    def __init__(self, guest, room, check_in, check_out):
+        try:
+            self.__check_in = datetime.strptime(check_in, "%Y-%m-%d")
+            self.__check_out = datetime.strptime(check_out, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("Dates must be in 'YYYY-MM-DD' format.")
+
+        # Ensure check-out is after check-in
+        if self.__check_out <= self.__check_in:
+            raise ValueError("Check-out must be after check-in.")
+
+        # Check room availability
+        if not room.is_available():
+            raise Exception("Selected room is not available.")
+
+        # Set reservation data
+        self.__guest = guest
+        self.__room = room
+        self.__invoice = None
+
+        # Book the room and register reservation to guest
+        room.book_room()
+        guest.add_reservation(self)
+
+    def generate_invoice(self):
+        # Calculate number of nights
+        nights = (self.__check_out - self.__check_in).days
+        # Calculate total price
+        total = nights * self.__room.get_price()
+        # Create invoice
+        self.__invoice = Invoice(self, total)
+        return self.__invoice
+
+    def cancel(self):
+        # Cancel reservation by releasing the room
+        self.__room.release_room()
+
+    def __str__(self):
+        # Return string summary of reservation
+        return f"Reservation for {self.__guest} in {self.__room} from {self.__check_in.date()} to {self.__check_out.date()}"
+
+
+# Class: ServiceRequest
+class ServiceRequest:
+    def __init__(self, reservation, service_type):
+        # Ensure reservation exists
+        if reservation is None:
+            raise ValueError("Service request must be linked to a valid reservation.")
+        # Set request details
+        self.__reservation = reservation
+        self.__service_type = service_type
+        self.__is_resolved = False  # Initially not resolved
+
+    def mark_resolved(self):
+        # Mark the request as completed
+        self.__is_resolved = True
+
+    def __str__(self):
+        # Return string summary of request
+        return f"Request: {self.__service_type}, Resolved: {self.__is_resolved}"
+
+
+# TEST CASES
+# 1-) Guest Account Creation
+g1 = Guest("Saif Khaled", "Saif@example.com", "1234567890")  # Create guest 1
+g2 = Guest("Mohamed Omar", "Mohamed@example.com", "0987654321")      # Create guest 2
+print(g1)  # Print guest info
+print(g2)
+
+# 2-) Searching for Available Rooms
+r1 = Room(101, "Single", ["Wi-Fi", "TV"], 100)  # Create room 101
+r2 = Room(102, "Double", ["Wi-Fi", "Mini-bar"], 150)  # Create room 102
+rooms = [r1, r2]  # List of rooms
+available_rooms = [r for r in rooms if r.is_available()]  # Filter available rooms
+print("\nAvailable Rooms:")
+for room in available_rooms:
+    print(room)  # Display available rooms
+
+# 3-) Making a Room Reservation
+res1 = Reservation(g1, r1, "2025-04-05", "2025-04-10")  # Reservation 1
+res2 = Reservation(g2, r2, "2025-04-04", "2025-04-06")  # Reservation 2
+print("\nReservations Made:")
+print(res1)  # Print reservation info
+print(res2)
+
+# 4-) Booking Confirmation Notification (simulated)
+print("\nBooking confirmed for:", g1)
+
+# 5-) Invoice Generation for a Booking
+inv1 = res1.generate_invoice()  # Generate invoice for res1
+inv2 = res2.generate_invoice()  # Generate invoice for res2
+print("\nInvoices:")
+print(inv1)
+print(inv2)
+
+# 6-) Processing Different Payment Methods (simulated)
+print("\nPayments processed successfully (simulated).")
+
+# 7-) Displaying Reservation History
+print("\nReservation History for Saif:")
+for res in g1.view_reservations():  # Loop through Alice's reservations
+    print(res)
+
+# 8-) Guest Requests Additional Services
+srv1 = ServiceRequest(res1, "Housekeeping")  # Create request for housekeeping
+srv1.mark_resolved()  # Mark the request as done
+print("\nService Request:")
+print(srv1)
+
+# 9-) Cancellation of a Reservation
+res1.cancel()  # Cancel reservation
+print(f"\nReservation cancelled. Room 101 available: {r1.is_available()}")
